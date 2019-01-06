@@ -26,11 +26,7 @@ RAW_PATH = "./data/raw_forex.csv"
 
 sys.path.append(DATA_PATH)
 sys.path.append('./lib')
-"""sys.path.append('./lib/utils_data')
-sys.path.append('./lib/utils_clipping')
-sys.path.append('./lib/utils_portfolio')
-sys.path.append('./lib/utils_lstm')
-"""
+
 from utils_data import *
 from utils_clipping import *
 from utils_portfolio import *
@@ -254,12 +250,6 @@ mvp_clipped.columns = rolled_return.columns
 mvp_clipped.plot(legend=False)
 
 performance_clipped = portfolio_performance(mvp_clipped, return_forex, 'markovitz clipped', log_ret=True, save=True)
-
-clipped_returns = mvp_clipped.multiply(rolled_return).dropna().sum(axis=1)
-clipped_returns.plot()
-
-performance_clipped = (1 + clipped_returns).cumprod()
-performance_clipped.name = 'min variance clipped'
 strategies = pd.concat([strategies, performance_clipped], axis=1)
 
 (strategies * 100).plot()

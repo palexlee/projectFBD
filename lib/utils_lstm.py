@@ -114,7 +114,7 @@ def forecast_asset(model, optimizer, criterion, asset_to_predict, returns, windo
       labels = labels.cuda()
       tofit = tofit.cuda()
 
-    result = train_model(model, inputs, labels, tofit, optimizer, criterion, batch_size)
+    result = train_model(model, inputs, labels, tofit, optimizer, criterion, batch_size, epoch)
 
     dataset.loc[predictors.index.values[-horizon]]=result
     

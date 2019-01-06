@@ -2,6 +2,7 @@ from zipfile import ZipFile
 import glob
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
 
 def load_data(folder_path, time_agg=None):
     list_paths = glob.glob(folder_path + '/**/', recursive=True)
