@@ -13,7 +13,7 @@ def plot_eigenvalues_dist(C, N, T, q):
 
   plt.figure(figsize=(20, 5))
   plt.hist(lambda_, bins=40, density=True)
-  x = np.arange(0, 5, 0.0001)
+  x = np.arange(lm, lp, 0.0001)
   plt.plot(x, S(x))
   title = 'Eigenvalues distribution'
   plt.title(title)

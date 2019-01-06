@@ -15,6 +15,7 @@ from sklearn.ensemble import RandomForestRegressor
 import matplotlib.pyplot as plt
 import time
 import pyRMT
+import glob
 
 from torch import nn
 from torch import optim
@@ -54,7 +55,7 @@ stock_indexes = ["SPXUSD","JPXJPY","NSXUSD","FRXEUR","UDXUSD","UKXGBP","GRXEUR",
 clean_forex = raw_forex.dropna(axis=0, thresh=int(0.9*len(raw_forex.columns)))
 clean_forex.columns = map(lambda x: x.replace(' CLOSE Bid Quote', ''), clean_forex.columns)
 clean_forex.index = pd.to_datetime(clean_forex.index)
-clean_forex.drop(columns=stock_indexes, inplace=True)
+clean_forex = clean_forex.drop(columns=stock_indexes)
 return_forex = np.log(clean_forex).diff()[1:].fillna(0.0)
 
 return_forex.XAUEUR.cumsum().plot()
@@ -363,7 +364,7 @@ title = 'LSTM Art'
 plt.title(title)
 plt.savefig(title+'.png')
 
-lstm_forex = lstm_forex.drop(columns=stock_indexes).drop(columns=bad_tick)
+lstm_forex = lstm_forex.drop(columns=(stock_indexes+bad_tick), level=0)
 clean_forex = clean_forex.drop(columns=bad_tick)
 
 tick = 'EURUSD'
@@ -404,7 +405,7 @@ q = N/T
 weights = pd.DataFrame(columns=clean_forex.columns)
 weights_clipped = weights.copy()
 
-for i in tqdm(range(len(clean_forex) - window-horizon)):
+for i in tqdm(range(len(clean_forex) - window-horizon - length_train)):
   prices = clean_forex.loc[lstm_forex.index].iloc[i:i+fwindow]
   
   composed_covariance, composed_correlation, stds = forecast_covariance(prices, lstm_forex, clean_forex.columns)
