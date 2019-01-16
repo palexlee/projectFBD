@@ -1,4 +1,4 @@
-import xgboost as xgb
+#import xgboost as xgb
 
 
 def one_weighter_xgb(taille0,taille1,Tin,returns,asset_to_predict,time=False): 

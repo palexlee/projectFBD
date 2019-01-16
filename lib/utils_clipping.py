@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from utils_portfolio import w_min
 
-def plot_eigenvalues_dist(C, N, T, q):
+def plot_eigenvalues_dist(C, N, T, q, path):
   lambda_, V = np.linalg.eig(C)
 
   lp = (1 + np.sqrt(q))**2
@@ -17,7 +17,7 @@ def plot_eigenvalues_dist(C, N, T, q):
   plt.plot(x, S(x))
   title = 'Eigenvalues distribution'
   plt.title(title)
-  plt.savefig(title+'.png', bbox_inches='tight')
+  plt.savefig(path + title+'.png', bbox_inches='tight')
 
 def corr_clipping(C, N, T, q, d=0.5):
 

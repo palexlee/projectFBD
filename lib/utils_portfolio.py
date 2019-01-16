@@ -2,7 +2,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+FIG_PATH = './figures/'
+
 def portfolio_performance(weights, returns, title, log_ret=False, save=False):
+  
   """
   in sample: portfolio weights computed for time t are used with returns at time t
   out sample: portfolio weights computed for time t are used with returns at time t + 1
@@ -41,7 +44,7 @@ def portfolio_performance(weights, returns, title, log_ret=False, save=False):
   (insample_performance * 100).plot(legend = True)
   
   if save:
-    plt.savefig(title+'.png', bbox_inches='tight')
+    plt.savefig(FIG_PATH+title+'.png', bbox_inches='tight')
     
   return performance
 

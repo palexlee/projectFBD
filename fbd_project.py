@@ -25,7 +25,9 @@ import torch
 DATA_PATH = "./data/raw/full-data-2000-2017"
 RAW_PATH = "./data/raw/"
 CLEAN_PATH = "./data/clean/"
-GIT_PATH = 'https://raw.githubusercontent.com/palexlee/projectFBD/master/'
+FIG_PATH = './figures/'
+GIT_PATH = 'https://raw.githubusercontent.com/palexlee/projectFBD/master/data/clean/'
+GIT_RAW = 'https://raw.githubusercontent.com/palexlee/projectFBD/master/data/raw/'
 
 sys.path.append(DATA_PATH)
 sys.path.append(RAW_PATH)
@@ -42,7 +44,7 @@ WRITE_RAW = False
 WRITE_CLEAN = False
 FIT_LSTM = False # set to True to retrain LSTMs, ~7h
 FIT_XGBOOST = False # set to True to retrain XGBoost, ~30min
-FROM_GITHUB = False
+FROM_GITHUB = True
 
 window = 80
 
@@ -57,7 +59,7 @@ else:
 """## Returns and ...."""
 
 if not WRITE_RAW:
-  raw_forex = pd.read_csv((GIT_PATH if FROM_GITHUB else RAW_PATH) + 'raw_forex.csv', index_col=[0])
+  raw_forex = pd.read_csv((GIT_RAW if FROM_GITHUB else RAW_PATH) + 'raw_forex.csv', index_col=[0])
 
 stock_indexes = ["SPXUSD","JPXJPY","NSXUSD","FRXEUR","UDXUSD","UKXGBP","GRXEUR","AUXAUD","HKXHKD","ETXEUR","WTIUSD"]
 
@@ -89,7 +91,7 @@ global_minimum_variance = covariance.groupby(level=0).apply(w_min)
 global_minimum_variance.columns = return_forex.columns
 global_minimum_variance.plot(legend=False)
 
-performance_markovitz = portfolio_performance(global_minimum_variance, return_forex, 'Markovitz', log_ret=True, save=True)
+performance_markovitz = portfolio_performance(global_minimum_variance, return_forex,'Markovitz', log_ret=True, save=True)
 
 """### 1.3) Risk parity"""
 
@@ -109,7 +111,7 @@ strategies = pd.concat([performance_ew, performance_rp, performance_markovitz], 
 title = 'Basic strategies comparison'
 plt.title(title)
 plt.ylabel('Cumulative return %')
-plt.savefig(title+'.png')
+plt.savefig(FIG_PATH+title+'.png')
 
 """In theory, we know that the risk parity and mean variance portfolio should outperform the equally weighted portfolio.
 
@@ -124,7 +126,7 @@ q = N/T
 correlation = rolled_return.shift(1).rolling(window).corr().dropna(axis=0)
 C = correlation.loc[correlation.index.get_level_values(0).unique()[-1]] #taking the last correlation matrix
   
-plot_eigenvalues_dist(C, N, T, q)
+plot_eigenvalues_dist(C, N, T, q, FIG_PATH)
 
 """It looks like deviation from RMT is really minimum, suggesting that our data is really noisy.
 
@@ -173,7 +175,7 @@ strategies_rmt = pd.concat([strategies, performance_clipped, performance_shrink]
 title='Model comparison (with correlation matrix cleaning)'
 plt.title(title)
 plt.ylabel('Performance %')
-plt.savefig(title+'.png')
+plt.savefig(FIG_PATH + title +'.png')
 
 """## 3) Alternative strategy
 
@@ -255,7 +257,7 @@ pd.concat([clean_forex[crazy_tick[1]], lstm_forex[crazy_tick[1]]], axis=1).plot(
 
 title = 'LSTM Art'
 plt.title(title)
-plt.savefig(title+'.png')
+plt.savefig(FIG_PATH + title+'.png')
 
 lstm_forex = lstm_forex.drop(columns=(stock_indexes+bad_tick), level=0)
 clean_forex = clean_forex.drop(columns=bad_tick)
@@ -267,14 +269,14 @@ plt.ylabel('price')
 
 title = tick + ' lstm fit'
 plt.title(title)
-plt.savefig(title+'.png')
+plt.savefig(FIG_PATH+title+'.png')
 
 tick_fit.loc['2015-04-01':'2015-08-01'].plot(figsize=(20,10))
 plt.ylabel('price')
 title = tick + ' lstm fit (4 months)'
 plt.title(tick + ' lstm fit (4 months)')
 
-plt.savefig(title+'.png')
+plt.savefig(FIG_PATH+title+'.png')
 
 """The lstm seems to yield a smoothed version of the FX pair price.
 
@@ -322,10 +324,10 @@ performance_gmv = portfolio_performance(gmv, clean_return, 'markovitz vanilla', 
 pd.concat([performance_gmv, performance_lstm], axis=1).plot()
 title = 'Vanilla vs lstm forecast'
 plt.title(title)
-plt.savefig(title+'.png', bbox_inches='tight')
+plt.savefig(FIG_PATH + title+'.png', bbox_inches='tight')
 
 pd.concat([performance_gmv, performance_lstm, performance_lstm_clipped], axis=1).plot()
 title = 'Comparison with clipped correlation matrices'
 plt.title(title)
-plt.savefig(title+'.png', bbox_inches='tight')
+plt.savefig(FIG_PATH + title+'.png', bbox_inches='tight')
 plt.ylabel('Performance %')
