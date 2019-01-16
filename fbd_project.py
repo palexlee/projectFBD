@@ -22,33 +22,42 @@ from torch import optim
 from torch import Tensor
 import torch
 
-DATA_PATH = "./data/full-data-2000-2017"
-RAW_PATH = "./data/raw_forex.csv"
+DATA_PATH = "./data/raw/full-data-2000-2017"
+RAW_PATH = "./data/raw/"
+CLEAN_PATH = "./data/clean/"
+GIT_PATH = 'https://raw.githubusercontent.com/palexlee/projectFBD/master/'
 
 sys.path.append(DATA_PATH)
+sys.path.append(RAW_PATH)
+sys.path.append(CLEAN_PATH)
 sys.path.append('./lib')
 
 from utils_data import *
 from utils_clipping import *
 from utils_portfolio import *
 from utils_lstm import *
+from utils_xboost import *
 
 WRITE_RAW = False
 WRITE_CLEAN = False
-FIT_LSTM = False
+FIT_LSTM = False # set to True to retrain LSTMs, ~7h
+FIT_XGBOOST = False # set to True to retrain XGBoost, ~30min
+FROM_GITHUB = False
 
-"""## Creating and cleaning forex dataset (PAS CHARLES)"""
+window = 80
+
+"""## Creating and cleaning forex dataset"""
 
 if WRITE_RAW:
   data = load_data(DATA_PATH, time_agg='d')
-  data.to_csv('raw_forex.csv')
+  data.to_csv(RAW_PATH + 'raw_forex.csv')
 else:
-  raw_forex = pd.read_csv(RAW_PATH, index_col=[0])
+  raw_forex = pd.read_csv(RAW_PATH + 'raw_forex.csv', index_col=[0])
 
 """## Returns and ...."""
 
 if not WRITE_RAW:
-  raw_forex = pd.read_csv('https://raw.githubusercontent.com/palexlee/projectFBD/master/raw_forex.csv', index_col=[0])
+  raw_forex = pd.read_csv((GIT_PATH if FROM_GITHUB else RAW_PATH) + 'raw_forex.csv', index_col=[0])
 
 stock_indexes = ["SPXUSD","JPXJPY","NSXUSD","FRXEUR","UDXUSD","UKXGBP","GRXEUR","AUXAUD","HKXHKD","ETXEUR","WTIUSD"]
 
@@ -60,127 +69,12 @@ return_forex = np.log(clean_forex).diff()[1:].fillna(0.0)
 
 return_forex.XAUEUR.cumsum().plot()
 
-"""## CHARLES -> LOAD DATA HERE
-
-clean_forex = raw_forex.dropna(axis=0, thresh=int(0.9*len(raw_forex.columns)))
-clean_forex.columns = map(lambda x: x.replace(' CLOSE Bid Quote', ''), clean_forex.columns)
-clean_forex.index = pd.to_datetime(clean_forex.index)
-return_forex = clean_forex.pct_change()[1:].fillna(0.0)
-#return_forex = np.log(clean_forex).diff()[1:].fillna(0.0)
-
-return_forex.head()
-
-classes_sign = np.sign(return_forex)
-#X, y = classes_sign,
-
-#clf = RandomForestClassifier(n_estimators=100, max_depth=2,random_state=0)
-#clf.fit(X, y)
-
-#returns.shape
-
-asset_to_predict= "XAUEUR"
-returns = classes_sign
-
-
-def tailleur(taille0,taille1,Tin,time=False): 
-  taille = range(taille0,taille1)
-  
-  #g_regr=[]
-  #x_regr=[]
-
-  acc = 0
-  for t0 in taille:
-      t1=t0+Tin
-      data_in_sample=returns.iloc[t0:t1]
-      data_in_sample=data_in_sample.dropna(axis=1)
-
-      what_to_predict=data_in_sample[asset_to_predict].shift(-1).iloc[:-1] # Y
-
-      predictors=data_in_sample
-      if(time): 
-        predictors["t"]=range(len(predictors))
-      lastpredictors=predictors.tail(1)
-      predictors=predictors.iloc[0:(len(predictors)-1)]
-
-      myRF=RandomForestRegressor(n_jobs=-1,n_estimators=100).fit(predictors,what_to_predict)
-      mypredictions=myRF.predict(lastpredictors)
-
-      x_t=np.sign(mypredictions[0])
-      #x_regr.append(x_t)
-      #g_regr.append(x_t*returns[asset_to_predict].iloc[t1])
-      #print(t1," ",x_t," ",np.nanprod(1+np.array(g_regr))," ",x_t*returns[asset_to_predict].iloc[t1])
-      #print(x_t)
-      if(x_t == returns[asset_to_predict].iloc[t1]): 
-        #t as gagné 
-        acc += 1
-  print(acc/len(taille),taille0,taille1)
-  return acc/len(taille)
-
-#def try_harder()
-best = 0
-try_hard_taille0 = [0,100,250,500,1000]
-try_hard_taille1 = [100,250,500,750,1250]
-offs = [10,50,100,150,300,600,900]
-for t0 in try_hard_taille0:
-  for t1 in try_hard_taille1: 
-    for offset in offs:
-      print(offset)
-      b1 = tailleur(t0,t1,offset)
-      if best < b1: 
-        t0_best,t1_best,offset_best = t0,t1,offset
-
-def one_weighter(taille0,taille1,Tin,returns,time=False): 
-  taille = range(taille0,taille1)
-  
-  #g_regr=[]
-  #x_regr=[]
-  w = []
-  acc = 0
-  for t0 in taille:
-      t1=t0+Tin
-      data_in_sample=returns.iloc[t0:t1]
-      data_in_sample=data_in_sample.dropna(axis=1)
-
-      what_to_predict=data_in_sample[asset_to_predict].shift(-1).iloc[:-1] # Y
-
-      predictors=data_in_sample
-      if(time): 
-        predictors["t"]=range(len(predictors))
-      lastpredictors=predictors.tail(1)
-      predictors=predictors.iloc[0:(len(predictors)-1)]
-
-      myRF=RandomForestRegressor(n_jobs=-1,n_estimators=100).fit(predictors,what_to_predict)
-      mypredictions=myRF.predict(lastpredictors)
-
-      x_t=np.sign(mypredictions[0])
-      w_t = mypredictions[0]
-      w.append(w_t)
-      #x_regr.append(x_t)
-      #g_regr.append(x_t*returns[asset_to_predict].iloc[t1])
-      #print(t1," ",x_t," ",np.nanprod(1+np.array(g_regr))," ",x_t*returns[asset_to_predict].iloc[t1])
-      #print(x_t)
-      if(x_t == returns[asset_to_predict].iloc[t1]): 
-        #t as gagné 
-        acc += 1
-  print(acc/len(taille),taille0,taille1)
-  return w,acc/len(taille)
-
-def all_weighter(taille0,taille1,Tin,returns,time=False):
-  w = []
-  for i in returns.columns: 
-    w_i,_ = one_weighter(taille0,taille1,Tin,returns,time)
-    w.append(w_i)
-  return w
-
-w = all_weighter(0,100,50,classes_sign,True)"""
 
 """## 1) Portfolio of forex"""
 
 rolled_return = return_forex.rolling(7).mean()
 
 """### 1.1) equally weighted"""
-
-window = 60
 
 equal_weight = rolled_return.apply(lambda x:pd.Series([1./rolled_return.shape[1]]*rolled_return.shape[1]), axis=1)
 equal_weight.columns = rolled_return.columns
@@ -262,8 +156,6 @@ plt.xlabel('Cumulative return %')
 ### 2.2) pyRMT clipping
 """
 
-window = 60
-
 rolled_return_adj = rolled_return.shift(1).dropna()
 
 clipped_weight = get_weight(rolled_return_adj, pyRMT.clipped, window)
@@ -299,7 +191,6 @@ The training is done the following way for each window:
 length_train = 15
 horizon = 7
 
-window = 60
 returns = clean_forex
 
 if FIT_LSTM:
@@ -318,35 +209,37 @@ if FIT_LSTM:
 
   for asset_to_predict in clean_forex.columns:
     prediction = forecast_asset(model, optimizer, criterion, asset_to_predict, returns, window, length_train, horizon, epoch)
-    filename = './data/lstm_' + str(horizon) + '_' + asset_to_predict + '.csv'
+    filename = RAW_PATH + 'lstm_' + str(horizon) + '_' + asset_to_predict + '.csv'
     prediction.to_csv(filename)
     print(asset_to_predict + ' done')
 
 
-  list_lstm_predictions = glob.glob('./data/lstm_*')
+  list_lstm_predictions = glob.glob(RAW_PATH + 'lstm_*')
 
   prediction_df = pd.DataFrame()
   for file in list_lstm_predictions:
       current_df = pd.read_csv(file, index_col=0, header=[0,1])
       prediction_df = pd.concat([prediction_df, current_df], axis=1)
       
-  prediction_df.to_csv('clean_forex_lstm_horizon7.csv')
+  prediction_df.to_csv(CLEAN_PATH + 'forex_lstm_horizon7.csv')
 
 """## Predictions
 
 ### XGboost
-too slow? incomplete? -> switch lstm?
 """
 
-xgb_forex = pd.read_csv('https://raw.githubusercontent.com/palexlee/projectFBD/master/xgb_forex.csv', index_col=[0])
-xgb_forex.index = pd.to_datetime(xgb_forex.index)
+if FIT_XGBOOST:
+  total_len_return_forex = return_forex.shape[0]
+  xgb_returns = all_weighter_xgb(0,total_len_return_forex-1,90,return_forex,time=True)
+  xgb_returns.to_csv(CLEAN_PATH + 'xgb_forex.csv')
+else :
 
-tick = 'EURCHF'
-pd.concat([np.log(clean_forex[tick]).diff(), xgb_forex[tick]], axis=1).plot(figsize=(20, 10))
+  xgb_returns = pd.read_csv((GIT_PATH if FROM_GITHUB else CLEAN_PATH) + 'xgb_forex.csv', index_col=[0])
+  xgb_returns.index = pd.to_datetime(xgb_returns.index)
 
 """### LSTM"""
 
-lstm_forex = pd.read_csv('https://raw.githubusercontent.com/palexlee/projectFBD/master/forex_lstm_horizon7.csv', index_col=[0], header=[0,1])
+lstm_forex = pd.read_csv((GIT_PATH if FROM_GITHUB else CLEAN_PATH) + 'forex_lstm_horizon7.csv', index_col=[0], header=[0,1])
 lstm_forex.index = pd.to_datetime(lstm_forex.index)
 lstm_forex = lstm_forex.shift(-length_train-horizon)
 
@@ -388,7 +281,6 @@ plt.savefig(title+'.png')
 ### 'forecasted' covariance matrix
 """
 
-window = 60
 clean_return = np.log(clean_forex).diff()[1:]
 clean_rolled_return = rolled_return.drop(columns=bad_tick)
 
