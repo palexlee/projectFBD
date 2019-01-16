@@ -41,7 +41,6 @@ from utils_lstm import *
 from utils_xboost import *
 
 WRITE_RAW = False
-WRITE_CLEAN = False
 FIT_LSTM = False # set to True to retrain LSTMs, ~7h
 FIT_XGBOOST = False # set to True to retrain XGBoost, ~30min
 FROM_GITHUB = True
